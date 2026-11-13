@@ -1,46 +1,46 @@
-# DSH Store：主插件路径与兼容声明
+# DSH Store: main plugin path and compatibility declaration
 
-本页对应 [DSH Store #1650](https://github.com/AI-Scarlett/DSH-Store/issues/1650) 的两个元数据问题。DSH Store 是第三方市场，其静态收录规则不是 DSH 官方插件规范，也不等于运行验收。
+This page addresses the two metadata issues in [DSH Store #1650](https://github.com/AI-Scarlett/DSH-Store/issues/1650). DSH Store is a third-party market; its static inclusion rules are not the DSH official plugin spec and do not equal runtime acceptance.
 
-## 唯一安装目标
+## The single install target
 
-- 仓库：`https://github.com/kingcharleslzy-ai/dsh-purge`
-- **Plugin path (optional)：`.`**
-- manifest：`package.json`
-- 包名：`dsh-purge-community`
-- Bundle：`cordis.patch.yml`
+- Repository: `https://github.com/kingcharleslzy-ai/dsh-purge`
+- **Plugin path (optional): `.`**
+- manifest: `package.json`
+- package name: `dsh-purge-community`
+- bundle: `cordis.patch.yml`
 
-[打开已填写主插件目录的申请表](https://github.com/AI-Scarlett/DSH-Store/issues/new?template=plugin-submission.yml&repository=https%3A%2F%2Fgithub.com%2Fkingcharleslzy-ai%2Fdsh-purge&plugin-path=.)。发送前确认路径框仍为 `.`。表单当前提示“根目录留空”，但其 `safeRelativeDirectory()` 将空值视为自动发现；多插件仓库会因此出现 `SUBMISSION_PACKAGE_AMBIGUOUS`。显式 `.` 才表示根目录。
+[Open the application form with the main plugin directory already filled in](https://github.com/AI-Scarlett/DSH-Store/issues/new?template=plugin-submission.yml&repository=https%3A%2F%2Fgithub.com%2Fkingcharleslzy-ai%2Fdsh-purge&plugin-path=.). Confirm the path box is still `.` before submitting. The form currently says "leave the root directory blank," but its `safeRelativeDirectory()` treats an empty value as auto-discovery; a multi-plugin repository then produces `SUBMISSION_PACKAGE_AMBIGUOUS`. An explicit `.` is what means the root directory.
 
-`packages/purge-panel` 是保留的独立面板包，不是本次主插件安装目标。不要删它或修改功能来消除发现歧义。不要把 `tree/master` 当作可靠的根目录选择，它在当前解析器中仍会回到自动发现。
+`packages/purge-panel` is a reserved standalone panel package and is not this main plugin's install target. Do not delete it or change functionality to eliminate the discovery ambiguity. Do not use `tree/master` as a reliable root-directory selection; in the current resolver it still falls back to auto-discovery.
 
-## 兼容声明的含义
+## What the compatibility declaration means
 
-`package.json` 使用市场实际读取的 `dsh.compatibility.dsh`、`profiles`、`dshReleases`；Node.js 范围继续为已有的 `engines.node >=18`。这里不新增 `engines.dsh` 安装阻断，也不改变插件现有宿主定位与运行行为。
+`package.json` uses the `dsh.compatibility.dsh`, `profiles`, and `dshReleases` fields the market actually reads; the Node.js range remains the existing `engines.node >=18`. No `engines.dsh` install blocker is added here, and the plugin's existing host targeting and runtime behavior are unchanged.
 
-| DSH 完整版本 | 声明 | 依据与限制 |
+| DSH full version | Declaration | Basis and limitations |
 | --- | --- | --- |
-| 0.2.1-rc.1 / rc.2 / rc.3 | compatible | 既有支持版本及隔离宿主验证；见 README 兼容表、维护记录和 CI |
-| 0.2.1-rc.4 | unknown | 没有同等版本的完整证据，不由相邻版本推断 |
-| 0.2.1-rc.5 | compatible | [1.6.62 宿主源码验证](maintenance-1.6.62.md)与[1.6.63 实机诊断记录](maintenance-1.6.63.md)；属于作者宿主兼容声明 |
-| 0.2.2-alpha.2 | unknown | 未完成该版本验证，不因版本范围命中就标为兼容 |
+| 0.2.1-rc.1 / rc.2 / rc.3 | compatible | Previously supported versions verified on isolated hosts; see the README compatibility table, maintenance records, and CI |
+| 0.2.1-rc.4 | unknown | No equivalent full evidence for this version; not inferred from adjacent versions |
+| 0.2.1-rc.5 | compatible | [1.6.62 host source verification](maintenance-1.6.62.md) and [1.6.63 on-device diagnostics](maintenance-1.6.63.md); this is the author's host-compatibility declaration |
+| 0.2.2-alpha.2 | unknown | Verification for this version is incomplete; a version-range hit alone does not make it compatible |
 
-范围描述目标宿主 API 发布线；精确版本状态才是市场的兼容声明。这里的 `compatible` 不代表每个平台、所有安装方式或所有功能均完成端到端验收。未提供本次固定 Commit 的逐版本 `dshOperations` 记录，市场应继续将安装/启动/卸载/回滚证据保留为 unknown，不能把旧记录自动挪到新 Commit。Windows Defender 检测是独立的安装环境问题，元数据不能豁免它。
+The range describes the target host API release line; the exact version status is the market's compatibility declaration. `compatible` here does not mean end-to-end acceptance on every platform, install method, or feature. Per-release `dshOperations` records for the current pinned Commit are not provided; the market should keep install/start/uninstall/rollback evidence as unknown rather than moving old records to the new Commit automatically. Windows Defender detections are an independent install-environment issue; metadata cannot exempt them.
 
-## 复检与边界
+## Re-checks and boundaries
 
-- 这是元数据修正，沿用主分支已有的 SemVer（当前为 1.6.64），不替换已有 Release 资产，不把未发布的安装器候选版混入市场申请。
-- 市场会重新固定默认分支完整 Commit；提交时显式选择根目录。若源码变化，同一版本也需要新 Commit 复检。
-- 这两个问题消除不等于已上架。依赖、权限、静态源码及受保护宿主操作仍按市场原规则审查，失败应保留具体原因。
-- 不为通过市场检查删除功能、隐藏权限、伪造兼容性或篡改扫描结果。主插件包含宿主维护能力，应如实披露；市场是否接受此类插件需由其规则及维护者决定。
+- This is a metadata correction; it keeps the main branch's existing SemVer (currently 1.6.64), does not replace existing Release assets, and does not mix an unpublished installer candidate into the market application.
+- The market re-pins the default branch's full Commit; select the root directory explicitly at submission time. If the source changes, the same version needs a new Commit re-check.
+- Resolving these two issues does not equal being listed. Dependencies, permissions, static source, and protected host operations are still reviewed under the market's original rules; a failure keeps its specific reason.
+- No features are deleted, permissions hidden, compatibility faked, or scan results tampered with in order to pass market checks. The main plugin includes host-maintenance capabilities and should be disclosed as such; whether the market accepts such plugins is decided by its rules and maintainers.
 
-## 2026-10-30 固定源码预检
+## 2026-10-30 pinned-source pre-check
 
-使用 DSH Store 自己的检查器提交 `66e6c77a316450da08648458e25da3438e278c46`，对公开的修正提交 `96e88852ec3532e12a11955088a3c2e1d216364e` 执行只读预检：
+Using DSH Store's own checker, submit Commit `66e6c77a316450da08648458e25da3438e278c46` and run a read-only pre-check against the public fix commit `96e88852ec3532e12a11955088a3c2e1d216364e`:
 
-- 留空路径：复现 `SUBMISSION_PACKAGE_AMBIGUOUS`，候选为 `.` 与 `packages/purge-panel`。
-- 显式 `.`：仅读取根 `package.json` 与 `cordis.patch.yml`，不再读取面板 manifest，目录歧义消失。
-- 市场的 `inferredCompatibility()` 能读到精确版本声明；rc.4/alpha.2 保持 unknown，rc.5 为 compatible，逐项运行操作证据为空而非伪造 passed。
-- 完整预检继续在 Bundle 阶段停止：`SUBMISSION_PATCH_AMBIGUOUS: Unsupported Patch inline sequence requires review`。这是另一项门槛，不能把前两项修正说成整体预检通过。
+- Path left blank: `SUBMISSION_PACKAGE_AMBIGUOUS` reproduced, with candidates `.` and `packages/purge-panel`.
+- Explicit `.`: only the root `package.json` and `cordis.patch.yml` are read; the panel manifest is no longer read and the directory ambiguity disappears.
+- The market's `inferredCompatibility()` can read the exact version declarations; rc.4/alpha.2 stay unknown, rc.5 is compatible, and the per-item operational evidence is empty rather than a faked passed.
+- The full pre-check still stops at the Bundle stage: `SUBMISSION_PATCH_AMBIGUOUS: Unsupported Patch inline sequence requires review`. This is a separate gate; the first two fixes cannot be claimed as the whole pre-check passing.
 
-现有 Bundle 含 `inject: [systemPrompt, tools]`、旧插件 `disabled` 迁移条目及 `!!js` 路径配置；市场有界解析器仅接受更窄的语法和操作。即使为字符串加引号，后续语法/操作仍需独立审查。保持 Bundle 原样，不删配置、不降低功能，也不篡改市场检查器。
+The existing Bundle contains `inject: [systemPrompt, tools]`, an old-plugin `disabled` migration entry, and a `!!js` path configuration; the market's bounded parser accepts only narrower syntax and operations. Even with string quoting, the later syntax/operations still need independent review. The Bundle is kept as-is; no configuration is deleted, no functionality is downgraded, and the market checker is not tampered with.

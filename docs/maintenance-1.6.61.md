@@ -1,59 +1,58 @@
-# 1.6.61 维护记录
+# 1.6.61 Maintenance Record
 
-本批次仅处理通用维护事务、更新网络、Web 路由与技能目录发现。没有修改宿主补丁定义、默认提示词、权限策略或自动重启行为。
+This batch only handled general maintenance tasks, update networking, web routing, and skill directory discovery. No host patch definitions, default prompts, permission policies, or auto-restart behavior were changed.
 
-## #92：锁发布、释放与收尾
+## #92: Lock publication, release, and teardown
 
-- 旧版 `open(wx)` 后才写元数据，进程在两步之间退出会留下空锁。新版先完整写入唯一所有者记录，再用同文件系统硬链接原子发布兼容锁。目录门继续协调新版进程，旧版仍能看到 `maintenance.lock`。
-- 两个锁名字必须对应同一 inode；不接受任意额外硬链接。文件系统不支持此操作时停止并报告，不回退到有空文件窗口的实现。
-- 释放失败不再丢掉目录门。有限重试后报告警告；只有本进程已记录的原释放闭包可以在下次获取前重试。其他活进程、未知主机、无效内容不会因年龄被抢锁。
-- `LOCK_UNREADABLE` 与 `LOCK_LOST` 都停止写入，但分别表示读取故障和明确的记录变化/缺失。恢复动作也必须重新确认归属。
-- 验证提交完成后的清理错误保留恢复目录、返回明确告警，不再误触发回滚。提交前失败仍按原有事务恢复。
-- 已经存在的空锁/损坏锁不能证明所有者死亡，继续报忙。没有增加自动删锁按钮。
-- 官方 1.6.59 没有按 30 分钟抢锁的逻辑；不为这一未经证实的假设添加心跳系统。
+- The old version wrote metadata only after `open(wx)`; a process exiting between the two steps left an empty lock. The new version first fully writes the unique owner record, then atomically publishes the compatibility lock via a hard link on the same filesystem. The directory gate continues to coordinate new-version processes, and old versions can still see `maintenance.lock`.
+- The two lock names must correspond to the same inode; no arbitrary extra hard links are accepted. If the filesystem does not support this operation, stop and report; do not fall back to an implementation with an empty-file window.
+- A release failure no longer drops the directory gate. After finite retries, report a warning; only the original release closure recorded by this process may retry before the next acquisition. Other live processes, unknown hosts, and invalid content are not preempted based on lock age.
+- `LOCK_UNREADABLE` and `LOCK_LOST` both stop writes, but they respectively indicate a read fault and an explicit record change/loss. Recovery actions must also re-confirm ownership.
+- Cleanup errors after a commit completes preserve the recovery directory and return an explicit warning, no longer falsely triggering rollback. Pre-commit failures still follow the original transactional recovery.
+- An existing empty lock/corrupt lock cannot prove the owner is dead; it continues to report busy. No automatic lock-deletion button was added.
+- Official 1.6.59 has no 30-minute lock preemption logic; no heartbeat system was added for this unverified assumption.
 
-## #106：子路径部署
+## #106: Subpath deployment
 
-面板从实际载入的插件脚本路径识别挂载点；无法使用该证据时采用同源页面/base 路径。API、刷新、环境查询等请求共用 URL 解析，外部链接不改写，不把凭据发送到跨域 base。根路径和桌面入口保持兼容。
+The panel identifies the mount point from the actually loaded plugin script path; when that evidence is unavailable, it falls back to the same-origin page/base path. Requests such as API, refresh, and environment queries share URL resolution; external links are not rewritten, and credentials are not sent to cross-origin bases. Root path and desktop entry remain compatible.
 
-## PR #99：更新通道
+## PR #99: Update channel
 
-保留贡献者提出的更新通道界面和独立设置文件，重新实现请求隔离与 SOCKS5 握手：
+The contributor-proposed update channel UI and standalone settings file were kept, with request isolation and the SOCKS5 handshake re-implemented:
 
-- 单次异步请求持有自己的环境快照，多实例互不串用，不写 `process.env` 或系统代理。
-- 只填写 token 仍继承已有 HTTP(S)_PROXY/NO_PROXY；留空表示继承，不是强制直连。
-- GitHub token 只发送到 API 主机；跨主机跳转重新生成请求头。公开状态不回显 token 或代理认证信息。
-- 本机凭据文件原子写入，POSIX 权限 0600。读取损坏时报错，不静默忽略配置。
-- SOCKS5 使用代理侧域名解析，支持可选用户名/密码认证；校验协商版本、认证方式与长度，限制响应缓存，并保留 TLS 校验、下载来源限制和 SHA256 校验。
+- A single async request holds its own environment snapshot; multiple instances do not cross-contaminate, and nothing writes to `process.env` or the system proxy.
+- Filling in only the token still inherits the existing HTTP(S)_PROXY/NO_PROXY; leaving it blank means inherit, not force-direct.
+- GitHub tokens are only sent to the API host; cross-host redirects regenerate request headers. Public status never echoes the token or proxy authentication info.
+- The local credentials file is written atomically with POSIX permissions 0600. Corrupt reads are reported as errors, not silently ignored.
+- SOCKS5 uses proxy-side domain resolution and supports optional username/password authentication; the negotiated version, auth method, and lengths are validated, the response cache is bounded, and TLS validation, download source restrictions, and SHA256 checks are preserved.
 
-## PR #103：技能发现
+## PR #103: Skill discovery
 
-内置预设使用宿主默认技能目录，不重复注册用户 DSH 目录。实际宿主 provider 验证用户 DSH/agents、项目 DSH/agents、bundled 五类目录，保留 `disable-model-invocation`。用户修改过的预设仍走原有保护，不强制覆盖。
+The built-in preset uses the host's default skill directory and does not re-register the user DSH directory. The real host provider verifies the five directory categories (user DSH/agents, project DSH/agents, bundled) and preserves `disable-model-invocation`. User-modified presets still go through the original protection and are not force-overwritten.
 
-## 安装与边界
+## Installation and boundaries
 
-默认安装器在创建恢复事务之前先确认 CLI 可定位，失败不会先搬动 profile 依赖。此诊断不能替代第三方发行版的实际兼容验证。
+The default installer confirms the CLI is locatable before creating the recovery transaction; on failure it does not move profile dependencies first. This diagnostic cannot substitute for real compatibility verification of a third-party distribution.
 
-#95 的 office-skills 丢失/损坏尚未取得精确根因。本批次保留真实链接目标保护测试，但不把它当成报告者现场已修复。#89、PR #102、PR #113 继续独立处理；没有启用第三方换包门禁绕过、Cookie 端口合并或提高 HTTP header 上限，也没有将 rc.5/alpha 宿主自动标记为已验证。
+The lost/corrupted office-skills case in #95 still lacks a precise root cause. This batch keeps the real link-target protection tests, but does not claim the reporter's field issue is fixed. #89, PR #102, and PR #113 remain handled independently; no third-party package-switch gate bypass, Cookie port merging, or HTTP header limit increase was enabled, and rc.5/alpha hosts were not automatically marked verified.
 
-## 验收
+## Acceptance
 
-本地最终候选包的验收：
+Acceptance of the local final candidate package:
 
-- macOS Node 全套：405 项，393 通过、12 项按平台/运行环境跳过、0 失败。
-- Windows 11 / 4090 Node 全套：405 项，380 通过、25 项跳过、0 失败。Mac 和 Windows 真实 Electron 的锁与链接删除测试各 32 项通过（显式等待子进程、核对退出码及非空结果）。
-- 面板回归：25 项通过，并执行真实 HTTP 子路径请求；CJS 打包、格式、文档及 TGZ smoke 检查通过。
-- Mac 在隔离目录执行实际官方 CLI + pnpm：首次安装、升级、回滚、再升级、安装失败与回滚失败恢复；file/link 依赖及外部目标文件哨兵保留。旧安装别名迁移也使用实际 CLI 验证，设置和提示词哨兵保留。
-- 两平台真实宿主技能 provider 均验证五类目录、无重复和禁止模型调用标记。
-- 真实本地 TLS 经 HTTP CONNECT / SOCKS5 传输，验证认证隔离、跨主机跳转、证书不匹配拒绝、超时和归档 SHA256；没有更改系统信任或用户代理。
+- macOS Node full suite: 405 items, 393 passed, 12 skipped by platform/runtime, 0 failed.
+- Windows 11 / 4090 Node full suite: 405 items, 380 passed, 25 skipped, 0 failed. The real-Electron lock and link-removal tests on Mac and Windows each passed 32 items (explicit child-process wait, exit-code and non-empty-result checks).
+- Panel regression: 25 items passed, including real HTTP subpath requests; CJS bundle, format, documentation, and TGZ smoke checks passed.
+- Mac ran the actual official CLI + pnpm in an isolated directory: first install, upgrade, rollback, re-upgrade, install failure and rollback-failure recovery; file/link dependency and external target-file sentinels preserved. Old-install alias migration was also verified with the real CLI, with settings and prompt sentinels preserved.
+- Both platforms' real host skill providers verified the five directory categories, no duplication, and the model-invocation-forbidden marker.
+- Real local TLS over HTTP CONNECT / SOCKS5 transport: auth isolation, cross-host redirect, certificate-mismatch rejection, timeout, and archive SHA256 verified; no system trust or user proxy was changed.
 
-跳过项不算通过；Windows/ macOS 的 Electron 补充测试与 Node 计数分开。此处不声称受影响用户的第三方发行版、现场 office-skills 损坏或完整 GUI 会话已恢复。正式 DSH、用户 profile 和代理未参与测试修改。云端检查与发行产物还须在合并/发布后核对。
+Skipped items do not count as passed; the Windows/macOS Electron supplement tests are counted separately from the Node numbers. This document does not claim that affected users' third-party distributions, field office-skills corruption, or full GUI sessions have been restored. No official DSH, user profile, or proxy participated in the test modifications. Cloud checks and release artifacts still must be re-verified after merge/release.
 
+### Known limitation of the full flow on Windows 4090
 
-### Windows 4090 完整流程的已知限制
+After explicitly waiting for Electron, the real install flow failed when backing up old-version files: Defender quarantined `skills/redteam/unauth-exploit.md`, and the read returned `UNKNOWN`. The local protection record's path, time, and anomaly are consistent, with detection name `Backdoor:PHP/Chopper.E!dha`; the record shows quarantine succeeded and it was not executed. A scan result alone cannot assert whether it is a false positive.
 
-显式等待 Electron 后，实际安装流程在备份旧版文件时失败：Defender 隔离了 `skills/redteam/unauth-exploit.md`，读取返回 `UNKNOWN`。本机防护记录的路径、时间与异常一致，检测名称为 `Backdoor:PHP/Chopper.E!dha`；记录显示隔离成功、未执行。仅凭扫描结果不能断言是否误报。
+Byte-for-byte comparison of that file in the released 1.6.60 and this candidate package: both are 8298 bytes with SHA256 `d70e456d4c0ae0a2b4c2e767dc5c3d0a3131af3be1dc4f3cdc6ed21a8dcd7129`; this batch did not modify its content. This evidence does not substitute for a field reproduction by the #95 reporter.
 
-对已发布 1.6.60 和本次候选包中该文件逐字节比对，均为 8298 字节，SHA256 为 `d70e456d4c0ae0a2b4c2e767dc5c3d0a3131af3be1dc4f3cdc6ed21a8dcd7129`，本批次没有修改该内容。此证据不能替代 #95 报告者的现场复现。
-
-没有关闭 Defender、设置排除、恢复隔离文件或删减技能来获得通过。Windows Node 测试和 Electron 锁测试已通过，但 **4090 上完整升级/回滚验收没有通过**。最初 PowerShell 驱动的空日志与退出码不算证据；GitHub 三平台安装及真实运行时检查随后全部通过。维护者在知悉上述限制后明确要求发布，因此本次按此范围发行，4090 的阻断作为已知问题保留，不宣称现场恢复。
+Defender was not disabled, no exclusions set, no quarantined files restored, and no skills removed to force a pass. Windows Node tests and Electron lock tests passed, but **the full upgrade/rollback acceptance on the 4090 did not pass**. The initial PowerShell-driven empty logs and exit codes do not count as evidence; the GitHub three-platform install and real runtime checks subsequently all passed. The maintainer explicitly requested release after being informed of the above limitation, so this release ships with that scope; the 4090 blockage is retained as a known issue and no field restoration is claimed.

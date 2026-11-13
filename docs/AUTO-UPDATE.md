@@ -1,13 +1,13 @@
-# 更新检查与自动安装
+# Update checks and auto install
 
-维护区有两个独立开关：`autoCheck`（默认 true）和 `autoInstall`（默认 false，若旧 `autoUpdateOnStart=true` 则保留该偏好）。检查启动延迟 30 秒，间隔 `intervalHours` 为 1–168 小时整数，默认 6。
+The maintenance area has two independent switches: `autoCheck` (default true) and `autoInstall` (default false; if the old `autoUpdateOnStart=true` is present, that preference is preserved). The check start delay is 30 seconds; the `intervalHours` interval is an integer of 1–168 hours, default 6.
 
-关闭检查会暂停安装但不清空安装偏好；这两项与 `autoApplyOnStart` 无关。设置保存在 `$DSH_HOME/dsh-purge/update-preferences.json`，读取默认值不写迁移文件。旧 profile、提示词、其他插件配置和通道锁定不变。
+Turning checks off pauses installation but does not clear the install preference; these two are unrelated to `autoApplyOnStart`. Settings are stored in `$DSH_HOME/dsh-purge/update-preferences.json`; reading defaults does not write a migration file. Old profiles, prompts, other plugin configurations, and channel locks are unchanged.
 
-自动安装只针对未锁定的社区正式版本，沿用 SHA256 校验、备份和安装失败恢复。网络检查返回后再次读取开关；此时已关闭或插件已卸载，不开始安装。已开始的安装不强行终止，完成后持久化结果。
+Auto install targets only unlocked community official releases and keeps the SHA256 check, backup, and install-failure recovery. The switches are read again after the network check returns; if they are off by then or the plugin has been uninstalled, no install starts. An install already in progress is not force-terminated; its result is persisted on completion.
 
-`update-status.json` 记录检查时间、错误、可用版本及待重启版本。安装成功后等待用户手动重启，暂停下一次自动安装；新进程加载对应版本后清除待重启标记。更新流程没有重启或客户端刷新动作；面板明确提示手动重启。
+`update-status.json` records the check time, errors, available versions, and the version pending restart. After a successful install the user is waited on to restart manually, and the next auto install is paused; after the new process loads the corresponding version, the pending-restart marker is cleared. The update flow has no restart or client-refresh action; the panel explicitly prompts for a manual restart.
 
-未知字段、非法间隔或损坏的偏好文件会报错，不会悄悄恢复默认并安装。检查失败仍会在下个周期重试，但不冒充已是最新版。锁定版本时不会自动越过 pin。
+Unknown fields, invalid intervals, or a corrupt preferences file produce an error; defaults are not quietly restored and installed. A failed check is still retried in the next cycle but does not claim to be on the latest version. Pinned versions are not auto-crossed.
 
-验证包括生命周期取消、请求去重、关闭开关、部分更新、错误信息与设置保留。真实发行包安装/回滚沿用既有维护测试；未在用户正在工作的 DSH 中自动安装来测试。
+Verification covers lifecycle cancellation, request deduplication, switch-off, partial updates, error messages, and settings preservation. Real release package install/rollback follows the existing maintenance tests; no auto install was performed inside a DSH the user is actively working in.

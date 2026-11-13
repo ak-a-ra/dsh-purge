@@ -666,7 +666,7 @@ export const en = {
   "btn.saveRule": "Save",
   "skills.title": "Skills",
   "skills.hint":
-    "After import, DSH calls it: type /name in chat to load now; the model calls the skill tool when the task matches description or whenToUse. Writing「激活」in the body does nothing.",
+    "After import, DSH calls it: type /name in chat to load now; the model calls the skill tool when the task matches description or whenToUse. Writing \u201cactivate\u201d in the body does nothing.",
   "skills.hint.desktop":
     "This desktop host’s official skill catalog. Type /name in chat to load; the model calls the skill tool when the task matches the description.",
   "skills.empty": "No user skills",
